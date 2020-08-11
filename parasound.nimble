@@ -2,7 +2,7 @@
 
 version       = "0.1.0"
 author        = "oakes"
-description   = "A new awesome nimble package"
+description   = "Bindings for miniaudio"
 license       = "Public Domain"
 srcDir        = "src"
 
