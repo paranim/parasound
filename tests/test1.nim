@@ -29,15 +29,13 @@ test "can write wav file":
 
 proc playFile(filename: string, sleepMsecs: int) =
   var
-    res: ma_result
     decoder = newSeq[uint8](ma_decoder_size())
     decoderAddr = cast[ptr ma_decoder](decoder[0].addr)
     deviceConfig = newSeq[uint8](ma_device_config_size())
     deviceConfigAddr = cast[ptr ma_device_config](deviceConfig[0].addr)
     device = newSeq[uint8](ma_device_size())
     deviceAddr = cast[ptr ma_device](device[0].addr)
-  res = ma_decoder_init_file(filename, nil, decoderAddr)
-  doAssert res == MA_SUCCESS
+  doAssert MA_SUCCESS == ma_decoder_init_file(filename, nil, decoderAddr)
 
   proc data_callback(pDevice: ptr ma_device; pOutput: pointer; pInput: pointer; frameCount: ma_uint32) {.cdecl.} =
     let decoderAddr = ma_device_get_decoder(pDevice)
