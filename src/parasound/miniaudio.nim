@@ -3212,3 +3212,4 @@ proc ma_decoder_size*(): csize
 proc ma_device_size*(): csize
 proc ma_device_config_size*(): csize
 proc ma_device_config_init_with_decoder*(deviceConfig: ptr ma_device_config, deviceType: ma_device_type, decoder: ptr ma_decoder, data_callback: ma_device_callback_proc)
+proc ma_device_get_decoder*(device: ptr ma_device): ptr ma_decoder

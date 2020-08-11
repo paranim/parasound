@@ -1,10 +1,3 @@
-# This is just an example to get you started. You may wish to put all of your
-# tests into a single file, or separate them into multiple `test1`, `test2`
-# etc. files (better names are recommended, just make sure the name starts with
-# the letter 't').
-#
-# To run these tests, simply execute `nimble test`.
-
 import unittest
 import parasound/dr_wav
 import parasound/miniaudio
@@ -34,7 +27,7 @@ test "can write wav file":
   doAssert existsFile("middle_c.wav")
   sleep(1000)
 
-test "can play wav file":
+proc playFile(filename: string, sleepMsecs: int) =
   var
     res: ma_result
     decoder = newSeq[uint8](ma_decoder_size())
@@ -43,10 +36,11 @@ test "can play wav file":
     deviceConfigAddr = cast[ptr ma_device_config](deviceConfig[0].addr)
     device = newSeq[uint8](ma_device_size())
     deviceAddr = cast[ptr ma_device](device[0].addr)
-  res = ma_decoder_init_file("tests/xylophone-sweep.wav", nil, decoderAddr)
+  res = ma_decoder_init_file(filename, nil, decoderAddr)
   doAssert res == MA_SUCCESS
 
   proc data_callback(pDevice: ptr ma_device; pOutput: pointer; pInput: pointer; frameCount: ma_uint32) {.cdecl.} =
+    let decoderAddr = ma_device_get_decoder(pDevice)
     discard ma_decoder_read_pcm_frames(decoderAddr, pOutput, frameCount)
 
   ma_device_config_init_with_decoder(deviceConfigAddr, ma_device_type_playback, decoderAddr, data_callback)
@@ -59,7 +53,14 @@ test "can play wav file":
     discard ma_decoder_uninit(decoderAddr)
     quit("Failed to start playback device.")
 
-  sleep(2000)
-  #discard ma_device_stop(deviceAddr)
+  sleep(sleepMsecs)
+  discard ma_device_stop(deviceAddr)
   #ma_device_uninit(deviceAddr)
   discard ma_decoder_uninit(decoderAddr)
+
+test "can play wav file":
+  playFile("tests/xylophone-sweep.wav", 2000)
+
+test "can play mp3 file":
+  playFile("tests/xylophone-sweep.mp3", 2000)
+

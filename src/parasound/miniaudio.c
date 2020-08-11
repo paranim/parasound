@@ -23,3 +23,7 @@ void ma_device_config_init_with_decoder(ma_device_config *device_config, ma_devi
   device_config->dataCallback      = data_callback;
   device_config->pUserData         = decoder;
 }
+
+ma_decoder* ma_device_get_decoder(ma_device *device) {
+  return (ma_decoder*)device->pUserData;
+}
