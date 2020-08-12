@@ -47,13 +47,13 @@ proc playFile(filename: string, sleepMsecs: int) =
     quit("Failed to open playback device.")
 
   if ma_device_start(deviceAddr) != MA_SUCCESS:
-    #ma_device_uninit(deviceAddr)
+    ma_device_uninit(deviceAddr)
     discard ma_decoder_uninit(decoderAddr)
     quit("Failed to start playback device.")
 
   sleep(sleepMsecs)
   discard ma_device_stop(deviceAddr)
-  #ma_device_uninit(deviceAddr)
+  ma_device_uninit(deviceAddr)
   discard ma_decoder_uninit(decoderAddr)
 
 test "can play wav file":
