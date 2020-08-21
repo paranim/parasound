@@ -14,7 +14,7 @@ test "can write wav file":
   var data = newSeq[cshort]()
   for n in arr:
     data.add(n.getInt.cshort)
-  common.writeFile("middle_c.wav", data, numSamples)
+  common.writeFile("middle_c.wav", data, numSamples, sampleRate)
   doAssert existsFile("middle_c.wav")
   sleep(1000)
 
@@ -27,7 +27,7 @@ test "can write wav to memory and play it":
   var data = newSeq[cshort]()
   for n in arr:
     data.add(n.getInt.cshort)
-  let wav = common.writeMemory(data, numSamples)
+  let wav = common.writeMemory(data, numSamples, sampleRate)
   common.play(wav, 1000)
 
 test "can play wav file":

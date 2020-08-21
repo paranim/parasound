@@ -2,8 +2,6 @@ import parasound/dr_wav
 import parasound/miniaudio
 import os
 
-const sampleRate* = 44100
-
 proc play*(data: string | seq[uint8], sleepMsecs: int) =
   ## if `data` is a string, it is interpreted as a filename.
   ## if `data` is a byte sequence, it is interpreted as an in-memory buffer.
@@ -38,7 +36,7 @@ proc play*(data: string | seq[uint8], sleepMsecs: int) =
   ma_device_uninit(deviceAddr)
   discard ma_decoder_uninit(decoderAddr)
 
-proc writeFile*(filename: string, data: var openArray[cshort], numSamples: uint) =
+proc writeFile*(filename: string, data: var openArray[cshort], numSamples: uint32, sampleRate: uint32) =
   var
     wav: drwav
     format: drwav_data_format
@@ -51,7 +49,7 @@ proc writeFile*(filename: string, data: var openArray[cshort], numSamples: uint)
   doAssert numSamples == drwav_write_pcm_frames(wav.addr, numSamples, data.addr)
   discard drwav_uninit(wav.addr)
 
-proc writeMemory*(data: var openArray[cshort], numSamples: uint): seq[uint8] =
+proc writeMemory*(data: var openArray[cshort], numSamples: uint32, sampleRate: uint32): seq[uint8] =
   var
     wav: drwav
     format: drwav_data_format
