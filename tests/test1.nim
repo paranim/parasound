@@ -4,7 +4,7 @@ import parasound/miniaudio
 import os
 import json
 
-proc play(data: string | (pointer, csize), sleepMsecs: int) =
+proc play(data: string | seq[uint8], sleepMsecs: int) =
   var
     decoder = newSeq[uint8](ma_decoder_size())
     decoderAddr = cast[ptr ma_decoder](decoder[0].addr)
@@ -14,8 +14,8 @@ proc play(data: string | (pointer, csize), sleepMsecs: int) =
     deviceAddr = cast[ptr ma_device](device[0].addr)
   when data is string:
     doAssert MA_SUCCESS == ma_decoder_init_file(data, nil, decoderAddr)
-  elif data is (pointer, csize):
-    doAssert MA_SUCCESS == ma_decoder_init_memory_wav(data[0], data[1], nil, decoderAddr)
+  elif data is seq[uint8]:
+    doAssert MA_SUCCESS == ma_decoder_init_memory(data[0].unsafeAddr, data.len, nil, decoderAddr)
 
   proc data_callback(pDevice: ptr ma_device; pOutput: pointer; pInput: pointer; frameCount: ma_uint32) {.cdecl.} =
     let decoderAddr = ma_device_get_decoder(pDevice)
@@ -83,11 +83,14 @@ test "can write wav to memory and play it":
   format.sampleRate = sampleRate
   format.bitsPerSample = 16
   var
-    output: pointer
+    outputRaw: pointer
     outputSize: csize
-  doAssert drwav_init_memory_write_sequential(wav.addr, output.addr, outputSize.addr, format.addr, numSamples, nil)
+    output: seq[uint8]
+  doAssert drwav_init_memory_write_sequential(wav.addr, outputRaw.addr, outputSize.addr, format.addr, numSamples, nil)
   doAssert numSamples == drwav_write_pcm_frames(wav.addr, numSamples, data[0].addr)
   doAssert outputSize > 0
-  play((output, outputSize), 1000)
+  output = newSeq[uint8](outputSize)
+  copyMem(output[0].addr, outputRaw, outputSize)
+  drwav_free(outputRaw, nil)
+  play(output, 1000)
   discard drwav_uninit(wav.addr)
-  drwav_free(output, nil)
