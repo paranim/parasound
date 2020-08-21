@@ -4,6 +4,38 @@ import parasound/miniaudio
 import os
 import json
 
+proc play(data: string | (pointer, csize), sleepMsecs: int) =
+  var
+    decoder = newSeq[uint8](ma_decoder_size())
+    decoderAddr = cast[ptr ma_decoder](decoder[0].addr)
+    deviceConfig = newSeq[uint8](ma_device_config_size())
+    deviceConfigAddr = cast[ptr ma_device_config](deviceConfig[0].addr)
+    device = newSeq[uint8](ma_device_size())
+    deviceAddr = cast[ptr ma_device](device[0].addr)
+  when data is string:
+    doAssert MA_SUCCESS == ma_decoder_init_file(data, nil, decoderAddr)
+  elif data is (pointer, csize):
+    doAssert MA_SUCCESS == ma_decoder_init_memory_wav(data[0], data[1], nil, decoderAddr)
+
+  proc data_callback(pDevice: ptr ma_device; pOutput: pointer; pInput: pointer; frameCount: ma_uint32) {.cdecl.} =
+    let decoderAddr = ma_device_get_decoder(pDevice)
+    discard ma_decoder_read_pcm_frames(decoderAddr, pOutput, frameCount)
+
+  ma_device_config_init_with_decoder(deviceConfigAddr, ma_device_type_playback, decoderAddr, data_callback)
+  if ma_device_init(nil, deviceConfigAddr, deviceAddr) != MA_SUCCESS:
+    discard ma_decoder_uninit(decoderAddr)
+    quit("Failed to open playback device.")
+
+  if ma_device_start(deviceAddr) != MA_SUCCESS:
+    ma_device_uninit(deviceAddr)
+    discard ma_decoder_uninit(decoderAddr)
+    quit("Failed to start playback device.")
+
+  sleep(sleepMsecs)
+  discard ma_device_stop(deviceAddr)
+  ma_device_uninit(deviceAddr)
+  discard ma_decoder_uninit(decoderAddr)
+
 test "can write wav file":
   const
     middleC = staticRead("middle_c.json")
@@ -27,69 +59,11 @@ test "can write wav file":
   doAssert existsFile("middle_c.wav")
   sleep(1000)
 
-proc playFile(filename: string, sleepMsecs: int) =
-  var
-    decoder = newSeq[uint8](ma_decoder_size())
-    decoderAddr = cast[ptr ma_decoder](decoder[0].addr)
-    deviceConfig = newSeq[uint8](ma_device_config_size())
-    deviceConfigAddr = cast[ptr ma_device_config](deviceConfig[0].addr)
-    device = newSeq[uint8](ma_device_size())
-    deviceAddr = cast[ptr ma_device](device[0].addr)
-  doAssert MA_SUCCESS == ma_decoder_init_file(filename, nil, decoderAddr)
-
-  proc data_callback(pDevice: ptr ma_device; pOutput: pointer; pInput: pointer; frameCount: ma_uint32) {.cdecl.} =
-    let decoderAddr = ma_device_get_decoder(pDevice)
-    discard ma_decoder_read_pcm_frames(decoderAddr, pOutput, frameCount)
-
-  ma_device_config_init_with_decoder(deviceConfigAddr, ma_device_type_playback, decoderAddr, data_callback)
-  if ma_device_init(nil, deviceConfigAddr, deviceAddr) != MA_SUCCESS:
-    discard ma_decoder_uninit(decoderAddr)
-    quit("Failed to open playback device.")
-
-  if ma_device_start(deviceAddr) != MA_SUCCESS:
-    ma_device_uninit(deviceAddr)
-    discard ma_decoder_uninit(decoderAddr)
-    quit("Failed to start playback device.")
-
-  sleep(sleepMsecs)
-  discard ma_device_stop(deviceAddr)
-  ma_device_uninit(deviceAddr)
-  discard ma_decoder_uninit(decoderAddr)
-
 test "can play wav file":
-  playFile("tests/xylophone-sweep.wav", 2000)
+  play("tests/xylophone-sweep.wav", 2000)
 
 test "can play mp3 file":
-  playFile("tests/xylophone-sweep.mp3", 2000)
-
-proc playMemory(data: pointer, dataSize: csize, sleepMsecs: int) =
-  var
-    decoder = newSeq[uint8](ma_decoder_size())
-    decoderAddr = cast[ptr ma_decoder](decoder[0].addr)
-    deviceConfig = newSeq[uint8](ma_device_config_size())
-    deviceConfigAddr = cast[ptr ma_device_config](deviceConfig[0].addr)
-    device = newSeq[uint8](ma_device_size())
-    deviceAddr = cast[ptr ma_device](device[0].addr)
-  doAssert MA_SUCCESS == ma_decoder_init_memory_wav(data, dataSize, nil, decoderAddr)
-
-  proc data_callback(pDevice: ptr ma_device; pOutput: pointer; pInput: pointer; frameCount: ma_uint32) {.cdecl.} =
-    let decoderAddr = ma_device_get_decoder(pDevice)
-    discard ma_decoder_read_pcm_frames(decoderAddr, pOutput, frameCount)
-
-  ma_device_config_init_with_decoder(deviceConfigAddr, ma_device_type_playback, decoderAddr, data_callback)
-  if ma_device_init(nil, deviceConfigAddr, deviceAddr) != MA_SUCCESS:
-    discard ma_decoder_uninit(decoderAddr)
-    quit("Failed to open playback device.")
-
-  if ma_device_start(deviceAddr) != MA_SUCCESS:
-    ma_device_uninit(deviceAddr)
-    discard ma_decoder_uninit(decoderAddr)
-    quit("Failed to start playback device.")
-
-  sleep(sleepMsecs)
-  discard ma_device_stop(deviceAddr)
-  ma_device_uninit(deviceAddr)
-  discard ma_decoder_uninit(decoderAddr)
+  play("tests/xylophone-sweep.mp3", 2000)
 
 test "can write wav to memory and play it":
   const
@@ -114,6 +88,6 @@ test "can write wav to memory and play it":
   doAssert drwav_init_memory_write_sequential(wav.addr, output.addr, outputSize.addr, format.addr, numSamples, nil)
   doAssert numSamples == drwav_write_pcm_frames(wav.addr, numSamples, data[0].addr)
   doAssert outputSize > 0
-  playMemory(output, outputSize, 1000)
+  play((output, outputSize), 1000)
   discard drwav_uninit(wav.addr)
   drwav_free(output, nil)
