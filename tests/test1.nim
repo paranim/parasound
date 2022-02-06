@@ -1,5 +1,4 @@
 import unittest
-import parasound/dr_wav
 import parasound/miniaudio
 import os
 import json
@@ -14,7 +13,7 @@ test "can write wav file":
   for n in arr:
     data.add(n.getInt.cshort)
   common.writeFile("middle_c.wav", data, data.len.uint32, sampleRate)
-  doAssert existsFile("middle_c.wav")
+  doAssert fileExists("middle_c.wav")
   sleep(1000)
 
 test "can write wav to memory and play it":
@@ -26,10 +25,10 @@ test "can write wav to memory and play it":
   for n in arr:
     data.add(n.getInt.cshort)
   let wav = common.writeMemory(data, data.len.uint32, sampleRate)
-  common.play(wav, 1000)
+  check common.play(wav, 1000)
 
 test "can play wav file":
-  common.play("tests/xylophone-sweep.wav", 2000)
+  check common.play("tests/xylophone-sweep.wav", 2000)
 
 test "can play mp3 file":
-  common.play("tests/xylophone-sweep.mp3", 2000)
+  check common.play("tests/xylophone-sweep.mp3", 2000)

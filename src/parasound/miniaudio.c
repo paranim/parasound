@@ -2,28 +2,74 @@
 #define DRWAV_IMPLEMENTATION
 #include "miniaudio.h"
 
+size_t ma_engine_size() {
+  return sizeof(ma_engine);
+}
+
 size_t ma_decoder_size() {
   return sizeof(ma_decoder);
 }
 
-size_t ma_device_config_size() {
-  return sizeof(ma_device_config);
+size_t ma_sound_size() {
+  return sizeof(ma_sound);
 }
 
-size_t ma_device_size() {
-  return sizeof(ma_device);
+void play_sound_from_file(char* file)
+{
+  ma_result result;
+  ma_engine *engine = calloc(1, ma_engine_size());
+
+  result = ma_engine_init(NULL, engine);
+  if (result != MA_SUCCESS) {
+    printf("Failed to initialize audio engine.");
+    return;
+  }
+
+  ma_engine_play_sound(engine, file, NULL);
+
+  printf("Press Enter to quit...");
+  getchar();
+
+  ma_engine_uninit(engine);
+  free(engine);
 }
 
+void play_sound_from_data(void* data, int size)
+{
+  ma_result result;
+  ma_engine *engine = calloc(1, ma_engine_size());
 
-void ma_device_config_init_with_decoder(ma_device_config *device_config, ma_device_type deviceType, ma_decoder* decoder, ma_device_callback_proc data_callback) {
-  *device_config = ma_device_config_init(ma_device_type_playback);
-  device_config->playback.format   = decoder->outputFormat;
-  device_config->playback.channels = decoder->outputChannels;
-  device_config->sampleRate        = decoder->outputSampleRate;
-  device_config->dataCallback      = data_callback;
-  device_config->pUserData         = decoder;
-}
+  result = ma_engine_init(NULL, engine);
+  if (result != MA_SUCCESS) {
+    printf("Failed to initialize audio engine.");
+    return;
+  }
 
-ma_decoder* ma_device_get_decoder(ma_device *device) {
-  return (ma_decoder*)device->pUserData;
+  ma_decoder *decoder = calloc(1, ma_decoder_size());
+  result = ma_decoder_init_memory(data, size, NULL, decoder);
+  if (result != MA_SUCCESS) {
+    printf("Failed to init decoder.");
+    return;
+  }
+
+  ma_sound *sound = calloc(1, ma_sound_size());
+  result = ma_sound_init_from_data_source(engine, decoder, 0, NULL, sound);
+  if (result != MA_SUCCESS) {
+    printf("Failed to load sound data.");
+    return;
+  }
+
+  ma_sound_start(sound);
+
+  printf("Press Enter to quit...");
+  getchar();
+
+  ma_sound_uninit(sound);
+  free(sound);
+
+  ma_decoder_uninit(decoder);
+  free(decoder);
+
+  ma_engine_uninit(engine);
+  free(engine);
 }
